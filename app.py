@@ -5,7 +5,7 @@ import pandas as pd
 from PIL import Image
 from io import BytesIO
 import plotly.graph_objects as go
-import markdown
+#import markdown
 import plotly.express as px
 import base64
 #import Path
