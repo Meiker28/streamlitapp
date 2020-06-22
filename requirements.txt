@@ -1,0 +1,9 @@
+pycaret==1.0.0
+streamlit
+matplotlib
+numpy
+pandas
+streamlit
+sklearn
+plotly
+Pillow
