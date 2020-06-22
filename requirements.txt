@@ -2,7 +2,6 @@ streamlit
 matplotlib
 numpy
 pandas
-streamlit
 sklearn
 plotly
 Pillow
