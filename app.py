@@ -28,7 +28,7 @@ menu = ['App','Análisis de Leads','Avisos Atípicos']
 choices = st.sidebar.selectbox('Seleccionar',menu)
 
 if choices == 'App':
-    st.image(image,use_column_width=True,clamp = True)
+    #st.image(image,use_column_width=True,clamp = True)
 
     #st.subheader('EDA')
     marca_mod = df.groupby(['marca','modelo','nombretipopublicacion']).lead.median().reset_index()
