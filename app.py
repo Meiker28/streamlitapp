@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 from PIL import Image
 
-image = Image.open('IVFey8Tz_400x400.jpg')
+#image = Image.open('IVFey8Tz_400x400.jpg')
 
 df = pd.read_csv('process_lead.csv')
 out = df[df.lead>100]
