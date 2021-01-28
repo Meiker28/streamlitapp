@@ -1,183 +1,83 @@
 import streamlit as st
-import numpy as np
 import pandas as pd
-#import requests
-from PIL import Image
-from io import BytesIO
+import numpy as np
+import os
 import plotly.graph_objects as go
-#import markdown
 import plotly.express as px
-import base64
-#import Path
-IMAGE = "images/basketball.jpg"
+from PIL import Image
 
-#md = markdown.Markdown()
+image = Image.open('IVFey8Tz_400x400.jpg')
 
-GITHUB_ROOT = (
-    "https://raw.githubusercontent.com/MarcSkovMadsen/awesome-streamlit/master/"
-    "gallery/nba_roster_turnover/"
-)
+df = pd.read_csv('process_lead.csv')
+out = df[df.lead>100]
 
-IMAGE_GITHUB = GITHUB_ROOT + "images/basketball.jpg"
+out.sort_values(by='lead',ascending=False)
+df = df[df.lead<=100]
+#df.head()
+df.head()
+dt= df.groupby(['marca','modelo']).sum().reset_index()[['marca','modelo']]
+marca_  = df.marca.value_counts().index.tolist()
 
-IMAGE = "images/basketball.jpg"
+def cambio(df):
+    df['Ganancia'] = round(df.lead/df.iloc[0].lead,1).astype(str) + 'x'
+    return df
 
-@st.cache
-def get_image():
-    response = requests.get(IMAGE_GITHUB)
-    return Image.open(BytesIO(response.content))
+st.title("Recomendación de Avisos")
 
-@st.cache
-def load_images(name):
-    img = Image.open(name)
-    return img
+menu = ['App','Análisis de Leads','Avisos Atípicos']
+choices = st.sidebar.selectbox('Seleccionar',menu)
 
-st.markdown(
-        f"""
-<style>
-    .reportview-container .main .block-container{{
-        max-width: 1000px;
-    }}
-</style>
-""",
-        unsafe_allow_html=True,
-    )
+if choices == 'App':
+    st.image(image,use_column_width=True,clamp = True)
 
-st.title("""
- Financial Risk Analizer
-""")
+    #st.subheader('EDA')
+    marca_mod = df.groupby(['marca','modelo','nombretipopublicacion']).lead.median().reset_index()
+    marca = st.selectbox('Marca', marca_)
 
-st.subheader('Alumnos')
-#st.write("""
-# Revenue Managment
-#""")
-#df = pd.DataFrame({'id_cod':['20150232','20160893','20190506'],'pred':[20,30,10]})
+    mdl= dt[dt.marca==marca].modelo.value_counts().sort_index().index.tolist()
+    modelo = st.selectbox('Modelo', mdl)
 
-image = load_images('university.jpg')
-st.sidebar.image(image, use_column_width=True)
-#st.sidebar.markdown(
-#    "Explore NBA roster turnover since\nthe 2003-04 season. **Roster turnover** is \ndefined as the "
-#    "sum of the difference\nin total minutes played by each player\non a given team between any two "
-#    "years."
-#)
+    tr = marca_mod[marca_mod.modelo==modelo].sort_values('lead')
+    tr = cambio(tr).reset_index(drop=True)
+    st.table ( tr)
 
-st.sidebar.markdown(
-    "En la **Educación Superior**, existen tres grandes líneas de aplicación de la **Inteligencia Artificial**"
-    " en las que veremos grandes cambios que conformarán el nuevo modelo educativo."
-)
+    st.write(px.bar(tr ,x='nombretipopublicacion', y='lead',  color='nombretipopublicacion'))
+
+if choices == 'Análisis de Leads':
+
+    st.subheader('Análisis de Leads')
+    #st.subheader('Explore the original data')
+
+    xvar = st.selectbox('Seleciona el eje-x:', ['precio','lead','kilometraje'])
+    yvar = st.selectbox('Seleciona el eje-y:', ['kilometraje','lead','precio'])
+    cat = st.selectbox('Seleciona la categoria:', ['nombretipopublicacion','marca','modelo'])
+
+    st.write(px.scatter(df ,x=xvar, y=yvar,  color=cat,width=850, height=600,title="Distribución por tipo de publicación"))
+
+    marca_mod = df.groupby(['marca','modelo','nombretipopublicacion']).lead.median().reset_index()
+    publicacion = st.selectbox('Seleciona tipo de publicación:', ['GRATUITO','SIMPLE','DESTACADO','PLUS','PREMIUM'])
+    st.write(px.bar(marca_mod[marca_mod.nombretipopublicacion==publicacion].sort_values('lead',ascending=False)[0:15] ,
+    x='modelo', y='lead',  color='nombretipopublicacion',width=850, height=600,title="Modelos de vehículo con mayor Lead"))
 
 
-page = st.sidebar.selectbox("Nuestras Soluciones", ["Admission Optmizer", "Financial Risk Analizer","Student retention"])
-df = pd.read_csv('Prediccsiones.csv')
+    marca = st.selectbox('Marca', marca_)
 
+    mdl= dt[dt.marca==marca].modelo.value_counts().sort_index().index.tolist()
+    modelo = st.selectbox('Modelo', mdl)
 
-df.DBECA_ESTADO.fillna('SIN BECA',inplace=True)
-df.EE_TIPO.fillna('Otros',inplace=True)
-df.DCAT_PAGO.fillna('CATEGORIA A',inplace=True)
-df.RIESGO_INASISTENCIA.fillna('SIN RIESGO',inplace=True)
-df.RECORDSEGMENTO.fillna('MEDIA INFERIOR',inplace=True)
-#df.shape
+    st.write(px.box(df[df.modelo==modelo] ,x='nombretipopublicacion', y='lead',
+    color='nombretipopublicacion',width=850, height=600,points='all',title="Distribución de Leads por tipo de publicación "))
 
-#df.columns
-df['DESERCIÓN'] = np.random.uniform(size=23745)
+sm = out[['idaviso','marca','modelo','precio','kilometraje','lead']].sort_values('lead',ascending=False).head(5).reset_index(drop=True)
+precio_mercado = [12500,15200,24650,19250,12000]
+sm['precio mercado'] = precio_mercado
 
-t1  = df.groupby('DMODALIDADINGRESO').agg({'PDESCUENTO_CUOTA':'mean','DESERCIÓN':'mean'}).reset_index()
+if choices == 'Avisos Atípicos':
+    st.subheader('Avisos Atípicos')
 
+    xvar = st.selectbox('Seleciona el eje-x:', ['precio','lead','kilometraje'])
+    yvar = st.selectbox('Seleciona el eje-y:', ['kilometraje','lead','precio'])
+    cat = st.selectbox('Seleciona la categoria:', ['nombretipopublicacion','marca','modelo'])
 
-
-fig = go.Figure(data=[go.Table(
-    header=dict(values=['<b>MODALIDAD DE INGRESO</b>','<b>CUOTA DE DESCUENTO</b>',
-                          '<b>PROM PROB DESERCIÓN </b>'],
-                fill_color='royalblue',
-                align='left',
-                font=dict(color='white', size=12)),
-    cells=dict(values=[t1.DMODALIDADINGRESO, t1.PDESCUENTO_CUOTA, t1.DESERCIÓN],
-               fill_color='lavender',
-               align='left',
-                font = dict(color = 'darkslategray', size = 11)))
-])
-
-
-
-
-def img_to_bytes(img_path):
-    img_bytes = Path(img_path).read_bytes()
-    encoded = base64.b64encode(img_bytes).decode()
-    return encoded
-
-with open("prediction.jpg", "rb") as image_file:
-    data = base64.b64encode(image_file.read()).decode()
-
-d1 =df[(df.PREDICHO>5) & (df.PREDICHO<=20) ]
-if page == "Homepage":
-    st.header("This is your data explorer.")
-    st.write("Please select a page on the left.")
-    st.dataframe(d1)
-
-elif page == "Financial Risk Analizer":
-
-    type = st.sidebar.radio("Tipo",('Exploración de datos','Predicción'))
-
-    if type =='Exploración de datos':
-        st.write(fig)
-
-        st.subheader('Explore the original data')
-        xvar = st.selectbox('Seleciona el eje-x:', ['PDESCUENTO_CUOTA','MONTO_MAT','MONTO_CUOTA','COLEGIO_PENSION'])
-        yvar = st.selectbox('Seleciona el eje-y:', ['PDESCUENTO_MAT','MONTO_MAT','MONTO_CUOTA','COLEGIO_PENSION'])
-        cat = st.selectbox('Seleciona la categoria:', ['DMODALIDADINGRESO','RIESGO_INASISTENCIA','DBECA_ESTADO'])
-        st.write(px.scatter(df ,x=xvar, y=yvar,  color=cat))
-
-
-    #st.title("Predicción")
-    elif type =='Predicción':
-        st.markdown("<center> <h1> Predicción de Descuentos</h1></center>",unsafe_allow_html=True)
-        img = load_images('prediction.jpg')
-        #encoded_string = base64.b64encode(image_file.read())
-        #"<center>"+md.convert(top_results_markdown)+"</center>"
-        #st.markdown("<center>"+md.convert("<img src='/home/meiker/web_app/project/university.jpg' width='850' height='200'/>") +"</center>",unsafe_allow_html=True)
-        st.image(img,use_column_width=True)
-        #st.markdown(f"<center>"+"<p> <img src={} width='850' height='200' />"+"</center> </p>",unsafe_allow_html=True)
-        #header_html =  "<img src='data:image/png;base64,{}'   height='500' width='400' class='img-fluid' />".format(data)
-        #st.markdown("<center>"+header_html+"</center>", unsafe_allow_html=True)
-
-        Edad = st.number_input('Edad', min_value=1, max_value=100, value=20)
-
-        Ciclo = st.slider('Ciclo', min_value=1, max_value=10, value=1)
-        sex = st.selectbox('Mérito General', ['Décimo Superior', 'Quinto Superior','Tercio Superior','Otros'])
-        sit_laboral = st.radio('Situación Laboral',('Sí','No'))
-
-
-        cod_alumno= st.selectbox('Ingrese Código de Alumno',d1.CALUMNO.unique())
-        new_df = d1.loc[d1.CALUMNO ==cod_alumno,['PREDICHO']].values
-        if st.button('Predecir'):
-            st.success("El porcentaje de descuento del alumno es:  {}%".format(int(new_df)))
-
-
-
-
-
-
-#df.FLAG_SITUACIONLAB.value_counts().index.tolist()
-#df.EE_TIPO.value_counts()
-
-
-
-
-
-
-
-
-#cod_alumno= st.sidebar.multiselect('Ingrese Código de Alumno',d1.CALUMNO.tolist())
-
-
-
-
-#st.write(d1)
-
-#st.subheader('Predicción de descuentos de alumnos')
-
-#cod_alumno= st.multiselect('Ingrese Código de Alumno',d1.CALUMNO.tolist())
-#new_df = d1.loc[d1.CALUMNO.isin(cod_alumno),['PREDICHO']].values
-
-
-#st.write('El descuento de la matricula es:' new_df)
+    st.write(px.scatter(out ,x=xvar, y=yvar,  color=cat,width=850, height=600,title="Distribución por tipo de publicación"))
+    st.table ( sm)
