@@ -33,6 +33,12 @@ if choices == 'App':
     #st.subheader('EDA')
     marca_mod = df.groupby(['marca','modelo','nombretipopublicacion']).lead.median().reset_index()
     marca = st.selectbox('Marca', marca_)
+    
+    if st.checkbox('Leads de todos los modelos'):
+        ts = df.groupby(['marca','nombretipopublicacion']).lead.median().reset_index()
+        tmp = ts[ts.marca==marca].sort_values('lead').reset_index(drop=True)
+        st.table(tmp)
+                                              
 
     mdl= dt[dt.marca==marca].modelo.value_counts().sort_index().index.tolist()
     modelo = st.selectbox('Modelo', mdl)
